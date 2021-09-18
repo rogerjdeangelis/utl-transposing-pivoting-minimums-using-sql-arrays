@@ -94,52 +94,50 @@ Obs    STORE    LAYAWAY     ONLINE    STORE
 
 proc sql;  /* create SQL array */
 
+  /* create array of store types */
   select
      distinct type
   into
      :_type1-
   from
      have
-;
+  ;
+  %let _typen=&sqlobs;
 
-  %let _typen=&sqlobs;  /* creates macro vars _type1 - _type3 and _typen with 3 types */
+  /* sql array
+
+  _TYPE1=LAYAWAY
+  _TYPE2=ONLINE
+  _TYPE3=STOREFRONT
+  _TYPEN=3
+
+  */
+
+  %put xxx  &=_type1 &=_type2 &=_type2 &=_typen xxx;
 
   create
-     table want as
+       table want as
   select
      store
-    ,%do_over(_type,phrase=max(?) as ?,between=comma)  /* iterates over purchase type ie online */
+    ,%do_over(_type,phrase=%str(min(case (type) when ("?") then price end) as ?),between=comma)
   from
-     (
-      select
-         store             /* iterates over purchase type ie online */
-        ,%do_over(_type,phrase=%str(case (type) when ("?") then price end as ?),between=comma)
-      from
-         have
-      group
-         by store, type
-      having
-        price = min(price)
-     )
+     have
   group
      by store
+
 ;quit;
 
-The nested SQL yeilds
 
-COUNTRY    LAYAWAY    ONLINE     STORE
---------------------------------------
-COSCO          450         .         .
-COSCO            .       511         .
-COSCO            .         .       447
-KOHLS          802         .         .
-KOHLS            .       761         .
-KOHLS            .         .       646
-TARGET         526         .         .
-TARGET           .       390         .
-TARGET           .         .       369
+/* if you want the generated code or mprint */
 
-The outer SQL groups by store selecting just the maximums
+data _null_;
+    %do_over(_type,phrase=%str(put "min(case (type) when ('?') then price end) as ?" /));
+run;quit;
+
+min(case (type) when ('LAYAWAY') then price end) as LAYAWAY
+min(case (type) when ('ONLINE') then price end) as ONLINE
+min(case (type) when ('STOREFRONT') then price end) as STOREFRONT
+
 
                 _
   ___ _ __   __| |
